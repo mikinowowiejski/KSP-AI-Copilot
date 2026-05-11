@@ -48,7 +48,6 @@ W projekcie zaimplementowano dwa podejścia do sterowania:
     SWITCH TO 0.
     run autopilot.
     ```
-4.  Obserwuj, jak AI wynosi Twoją rakietę w kosmos!
 
 ---
 *Projekt rozwijany hobbystycznie w ramach nauki uczenia maszynowego i inżynierii systemów kosmicznych.*
