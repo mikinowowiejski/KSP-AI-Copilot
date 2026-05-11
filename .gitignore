@@ -1,0 +1,5 @@
+# KSP telemetry data files 
+*.csv
+
+# KSP compiled scripts
+*.ksm
