@@ -1,0 +1,115 @@
+package space.copilot.telemetry;
+
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
+import java.util.Locale;
+
+public class CommandWriterAI {
+
+    private MultiLayerNetwork aiModel;
+
+    public void loadAI(String modelPath) throws IOException {
+        System.out.println("Ładowanie modułu AI z pliku: " + modelPath);
+        this.aiModel = MultiLayerNetwork.load(new File(modelPath), true);
+        System.out.println("====== MÓZG AI ZAŁADOWANY  ======");
+    }
+
+    public void writeCommand(double currentAltitude, String outputPath) throws IOException {
+
+        if (aiModel == null) {
+            throw new IllegalStateException("Model AI nie został załadowany! Wywołaj loadAI() przed lotem.");
+        }
+
+        double normalizedAltitude = currentAltitude / 50000.0;
+
+        INDArray input = Nd4j.create(new double[]{ normalizedAltitude }, new int[]{1, 1});
+
+        INDArray output = aiModel.output(input);
+
+        double predictedPitch = output.getDouble(0) * 90.0;
+
+        if (predictedPitch < 0.0) predictedPitch = 0.0;
+        if (predictedPitch > 90.0) predictedPitch = 90.0;
+
+
+        String command = String.format(Locale.US, "%.2f", predictedPitch);
+
+        Path finalPath = Path.of(outputPath);
+        Path tempPath = Path.of(outputPath + ".tmp");
+
+        Files.writeString(tempPath, command,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        try {
+            Files.move(tempPath, finalPath,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+
+            System.out.println(String.format("AI Copilot: Wysokość %.0fm -> Wychylenie: %.2f°",
+                    currentAltitude, predictedPitch));
+
+        } catch (IOException e) {
+        }
+    }
+}
+
+
+
+   /* public void writeCommand(double currentAltitude, String outputPath) throws IOException {
+        double targetPitch = calculateGravityTurn(currentAltitude);
+        String command = String.format(Locale.US, "%.2f", targetPitch);
+
+        Path finalPath = Path.of(outputPath);
+        Path tempPath = Path.of(outputPath + ".tmp"); // Plik tymczasowy
+
+        Files.writeString(tempPath, command,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        try {
+            Files.move(tempPath, finalPath,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+
+            System.out.println(String.format("Ground Control: Wysokość %.0fm -> Kąt: %s°",
+                    currentAltitude, command));
+        } catch (IOException e) {
+        }
+    }
+
+    private double calculateGravityTurn(double altitude) {
+        if (altitude < 1000) return 90.0;
+        if (altitude > 40000) return 0.0;
+        double progress = (altitude - 1000) / 39000.0;
+        return 90.0 - (progress * 90.0);
+    }
+
+    private MultiLayerNetwork model;
+
+    public void loadModel(String modelPath) throws IOException {
+        this.model = MultiLayerNetwork.load(new File(modelPath), true);
+    }
+
+    public double predictWithAI(double altitude) {
+        INDArray input = Nd4j.create(new double[]{ altitude / 50000.0 }, new int[]{1, 1});
+
+        INDArray output = model.output(input);
+
+        double predictedPitch = output.getDouble(0) * 90.0;
+
+        if (predictedPitch < 0) return 0;
+        if (predictedPitch > 90) return 90;
+
+        return predictedPitch;
+    }
+
+    */
