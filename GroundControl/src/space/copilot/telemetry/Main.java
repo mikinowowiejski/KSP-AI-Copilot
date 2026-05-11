@@ -10,7 +10,7 @@ public class Main {
         String commandPath = "C:\\Program Files\\Epic Games\\KerbalSpaceProgram\\English\\Ships\\Script\\sterowanie.csv";
 
         TelemetryReader reader = new TelemetryReader();
-        CommandWriterAI writer = new CommandWriterAI();
+        CommandWriter writer = new CommandWriter();
 
         while (true) {
             try {

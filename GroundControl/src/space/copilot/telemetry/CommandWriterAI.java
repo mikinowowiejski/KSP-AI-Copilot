@@ -15,6 +15,7 @@ import java.util.Locale;
 public class CommandWriterAI {
 
     private MultiLayerNetwork aiModel;
+    private double lastWrittenPitch = -999.0;
 
     public void loadAI(String modelPath) throws IOException {
         System.out.println("Ładowanie modułu AI z pliku: " + modelPath);
@@ -39,6 +40,9 @@ public class CommandWriterAI {
         if (predictedPitch < 0.0) predictedPitch = 0.0;
         if (predictedPitch > 90.0) predictedPitch = 90.0;
 
+        if (Math.abs(predictedPitch - lastWrittenPitch) < 0.1) {
+            return;
+        }
 
         String command = String.format(Locale.US, "%.2f", predictedPitch);
 
@@ -57,59 +61,9 @@ public class CommandWriterAI {
             System.out.println(String.format("AI Copilot: Wysokość %.0fm -> Wychylenie: %.2f°",
                     currentAltitude, predictedPitch));
 
+            lastWrittenPitch = predictedPitch;
+
         } catch (IOException e) {
         }
     }
 }
-
-
-
-   /* public void writeCommand(double currentAltitude, String outputPath) throws IOException {
-        double targetPitch = calculateGravityTurn(currentAltitude);
-        String command = String.format(Locale.US, "%.2f", targetPitch);
-
-        Path finalPath = Path.of(outputPath);
-        Path tempPath = Path.of(outputPath + ".tmp"); // Plik tymczasowy
-
-        Files.writeString(tempPath, command,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-
-        try {
-            Files.move(tempPath, finalPath,
-                    StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
-
-            System.out.println(String.format("Ground Control: Wysokość %.0fm -> Kąt: %s°",
-                    currentAltitude, command));
-        } catch (IOException e) {
-        }
-    }
-
-    private double calculateGravityTurn(double altitude) {
-        if (altitude < 1000) return 90.0;
-        if (altitude > 40000) return 0.0;
-        double progress = (altitude - 1000) / 39000.0;
-        return 90.0 - (progress * 90.0);
-    }
-
-    private MultiLayerNetwork model;
-
-    public void loadModel(String modelPath) throws IOException {
-        this.model = MultiLayerNetwork.load(new File(modelPath), true);
-    }
-
-    public double predictWithAI(double altitude) {
-        INDArray input = Nd4j.create(new double[]{ altitude / 50000.0 }, new int[]{1, 1});
-
-        INDArray output = model.output(input);
-
-        double predictedPitch = output.getDouble(0) * 90.0;
-
-        if (predictedPitch < 0) return 0;
-        if (predictedPitch > 90) return 90;
-
-        return predictedPitch;
-    }
-
-    */
