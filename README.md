@@ -45,6 +45,7 @@ W projekcie zaimplementowano dwa podejścia do sterowania:
 2.  Uruchom klasę `MainAI` w środowisku Java.
 3.  W terminalu kOS wewnątrz gry wpisz:
     ```kerboscript
+    SWITCH TO 0.
     run autopilot.
     ```
 4.  Obserwuj, jak AI wynosi Twoją rakietę w kosmos!
