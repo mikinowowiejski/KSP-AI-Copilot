@@ -41,8 +41,12 @@ UNTIL SHIP:APOAPSIS > 80000 {
     LOCAL alti IS ROUND(SHIP:ALTITUDE, 2).
     LOCAL spd IS ROUND(SHIP:AIRSPEED, 2).
 
-    // Format: Czas_s, Wysokosc_m, Predkosc_ms, Pochylenie_deg
-    LOCAL logLine IS current_time + "," + alti + "," + spd + "," + ROUND(targetPitch, 2).
+    LOCAL currentTWR IS SHIP:AVAILABLETHRUST/ (SHIP:MASS * 9.81). //TWR na kerbinie
+    LOCAL dynPres IS SHIP:Q. //cisnienie dynamiczne
+    LOCAL apo IS ROUND(SHIP:APOAPSIS,2).
+
+    // Format: Czas_s, Wysokosc_m, Predkosc_ms, TWR, Q, Pochylenie_deg,
+    LOCAL logLine IS current_time + "," + alti + "," + spd + "," + ROUND(currentTWR, 2) + "," + ROUND(dynPres,4) + "," + apo + "," + ROUND(targetPitch, 2).
     LOG logLine TO telPath.
 
     PRINT "=== FAZA 1: WZNOSZENIE ATMOSFERYCZNE ===" AT (0, 2).
@@ -72,8 +76,8 @@ CLEARSCREEN.
 PRINT "=== FAZA 3: CYRKULARYZACJA ORBITY ===" AT (0, 2).
 PRINT "Oczekiwanie na optymalny moment zaplonu..." AT (0, 4).
 
-UNTIL ETA:APOAPSIS < 40 {
-    PRINT "Zaplon za: " + ROUND(ETA:APOAPSIS - 40) + " s    " AT (0, 6).
+UNTIL ETA:APOAPSIS < 30 {
+    PRINT "Zaplon za: " + ROUND(ETA:APOAPSIS - 30) + " s    " AT (0, 6).
     WAIT 0.1.
 }
 

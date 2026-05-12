@@ -23,15 +23,21 @@ public class CommandWriterAI {
         System.out.println("====== MÓZG AI ZAŁADOWANY  ======");
     }
 
-    public void writeCommand(double currentAltitude, String outputPath) throws IOException {
+    public void writeCommand(double altitude, double spd, double twr, double q, double apo, String outputPath) throws IOException {
+
+        double nAlt = altitude / 70000.0;
+        double nSpd = spd / 2500.0;
+        double nTwr = twr / 10.0;
+        double nQ = q / 0.5;
+        double nApo = apo / 80000;
 
         if (aiModel == null) {
             throw new IllegalStateException("Model AI nie został załadowany! Wywołaj loadAI() przed lotem.");
         }
 
-        double normalizedAltitude = currentAltitude / 50000.0;
+        double normalizedAltitude = altitude / 50000.0;
 
-        INDArray input = Nd4j.create(new double[]{ normalizedAltitude }, new int[]{1, 1});
+        INDArray input = Nd4j.create(new double[]{ nAlt, nSpd, nTwr, nQ, nApo }, new int[]{1, 5});
 
         INDArray output = aiModel.output(input);
 
@@ -59,7 +65,7 @@ public class CommandWriterAI {
                     StandardCopyOption.ATOMIC_MOVE);
 
             System.out.println(String.format("AI Copilot: Wysokość %.0fm -> Wychylenie: %.2f°",
-                    currentAltitude, predictedPitch));
+                    altitude, predictedPitch));
 
             lastWrittenPitch = predictedPitch;
 

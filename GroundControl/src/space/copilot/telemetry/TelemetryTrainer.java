@@ -29,17 +29,37 @@ public class TelemetryTrainer {
         List<String> lines = Files.readAllLines(Paths.get(trainingDataPath));
         lines.remove(0);
 
+
+        if (lines.get(0).contains("Czas_s")) {
+            lines.remove(0);
+        }
+
         int numRows = lines.size();
-        INDArray input = Nd4j.create(numRows, 1);
+        INDArray input = Nd4j.create(numRows, 5);
         INDArray output = Nd4j.create(numRows, 1);
 
         for (int i = 0; i < numRows; i++) {
             String[] cols = lines.get(i).split(",");
-            double altitude = Double.parseDouble(cols[1]); // Kolumna z wysokością
-            double pitch = Double.parseDouble(cols[3]);    // Kolumna z kątem
+            double altitude = Double.parseDouble(cols[1]);
+            double speed = Double.parseDouble(cols[2]);
+            double twr = Double.parseDouble(cols[3]);
+            double q = Double.parseDouble(cols[4]);
+            double apo = Double.parseDouble(cols[5]);
+            double pitch = Double.parseDouble(cols[6]);
+
+            double nAlt = altitude / 70000.0;
+            double nSpd = speed / 2500.0;
+            double nTwr = twr / 10.0;
+            double nQ = q / 0.5;
+            double nApo = apo / 80000;
 
             // Normalizacja danych (AI lubi liczby od 0 do 1)
-            input.putScalar(new int[]{i, 0}, altitude / 50000.0);
+            input.putScalar(new int[]{i, 0}, nAlt);
+            input.putScalar(new int[]{i, 1}, nSpd);
+            input.putScalar(new int[]{i, 2}, nTwr);
+            input.putScalar(new int[]{i, 3}, nQ);
+            input.putScalar(new int[]{i, 4}, nApo);
+
             output.putScalar(new int[]{i, 0}, pitch / 90.0);
         }
 
@@ -52,10 +72,10 @@ public class TelemetryTrainer {
                 .updater(new Adam(0.001))
                 .weightInit(WeightInit.XAVIER)
                 .list()
-                .layer(new DenseLayer.Builder().nIn(1).nOut(20).activation(Activation.TANH).build())
-                .layer(new DenseLayer.Builder().nIn(20).nOut(20).activation(Activation.TANH).build())
+                .layer(new DenseLayer.Builder().nIn(5).nOut(32).activation(Activation.TANH).build())
+                .layer(new DenseLayer.Builder().nIn(32).nOut(32).activation(Activation.TANH).build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.MSE)
-                        .activation(Activation.IDENTITY).nIn(20).nOut(1).build())
+                        .activation(Activation.IDENTITY).nIn(32).nOut(1).build())
                 .build();
 
         // 3. Inicjalizacja i trening

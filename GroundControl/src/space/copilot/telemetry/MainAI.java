@@ -25,6 +25,10 @@ public class MainAI {
                 if (!flightData.isEmpty()) {
                     var latestData = flightData.get(flightData.size() - 1);
                     double currentAlt = latestData.altitude();
+                    double currentSpd = latestData.velocity();
+                    double currentTwr = latestData.twr();
+                    double currentQ = latestData.q();
+                    double currentApo = latestData.apoapsis();
 
                     // System uzbraja się tylko na platformie startowej
                     if (!isArmed && currentAlt < 1000) {
@@ -33,7 +37,7 @@ public class MainAI {
                     }
 
                     if (isArmed) {
-                        writer.writeCommand(currentAlt, commandPath);
+                        writer.writeCommand(currentAlt, currentSpd, currentTwr, currentQ, currentApo,  commandPath);
 
                         if (currentAlt > 50000) {
                             System.out.println("KONIEC MISJI - OSIĄGNIĘTO PUŁAP OPERACYJNY.");

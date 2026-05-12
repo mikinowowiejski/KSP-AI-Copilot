@@ -25,16 +25,19 @@ public class TelemetryReader {
     {
         String[] parts = rawLine.split(",");
 
-        if(parts.length != 4)
+        /*if(parts.length != )
         {
             throw new IllegalArgumentException("Uszkodzona ramka telemetryczna!");
-        }
+        }*/
 
         double time = Double.parseDouble(parts[0]);
         double altitude = Double.parseDouble(parts[1]);
         double velocity = Double.parseDouble(parts[2]);
-        double pitch = Double.parseDouble(parts[3]);
+        double twr = Double.parseDouble(parts[3]);
+        double q = Double.parseDouble(parts[4]);
+        double apoapsis = Double.parseDouble(parts[5]);
+        double pitch = Double.parseDouble(parts[6]);
 
-        return new TelemetryPoint(time,altitude,velocity,pitch);
+        return new TelemetryPoint(time,altitude,velocity,twr, q, apoapsis, pitch);
     }
 }
