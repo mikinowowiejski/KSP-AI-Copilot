@@ -30,7 +30,7 @@ W projekcie zaimplementowano dwa równoległe podejścia do sterowania:
 
    - [1] **Etap 1: Behavioral Cloning (Uczenie Nadzorowane):** Pierwotna wersja systemu opierała się na naśladownictwie (Supervisor). Sieć uczyła się kopiować optymalne trajektorie z plików wzorcowych. Metoda ta zapewniała stabilność w znanych warunkach, ale brakowało jej elastyczności przy nieprzewidzianych anomaliach.
 
-   - [2] **Etap 2: Hybrid RL (Reinforcement Learning):** Obecna wersja wykorzystuje podejście hybrydowe. Model łączy bazę wiedzy z uczenia nadzorowanego z algorytmami uczenia przez wzmacnianie. Dzięki temu AI nie tylko „kopiuje” ruchy, ale aktywnie optymalizuje kąt nachylenia (Pitch) w czasie rzeczywistym, dążąc do maksymalizacji nagrody (np. stabilności orbity i oszczędności paliwa).
+   - [2] **Etap 2: Hybrydowa Neuroewolucja (Supervised Learning + Genetic Algorithm)** : Obecna wersja wykorzystuje podejście hybrydowe. Model łączy początkową bazę wiedzy z algorytmami ewolucyjnymi. Dzięki temu AI nie tylko „kopiuje” ruchy pilota, ale aktywnie optymalizuje kąt nachylenia (Pitch) poprzez mechanizm selekcji i mutacji, dążąc do wyewoluowania trajektorii maksymalizującej końcową nagrodę (idealna stabilność orbity i ekstremalna oszczędność paliwa).
 
 * **Specyfikacja Techniczna Modelu:**
 
@@ -48,7 +48,7 @@ W projekcie zaimplementowano dwa równoległe podejścia do sterowania:
 - [x] **Automatyczny Staging:** System wykrywa brak ciągu i automatycznie odrzuca puste człony rakiety.
 - [x] **Gravity Turn:** Implementacja zoptymalizowanego łuku lotu (parabola).
 - [x] **Stabilna Orbita:** Skrypt automatycznie wykonuje manewr cyrkularyzacji w Apoapsis, stabilizując orbitę powyżej 70 km.
-- [x] **Reinforcement Learning** Przejście z prostego modelu Supervised Learning na zaawansowany **Hybryd RL**.
+- [x] **Neuroewolucja** Przejście z prostego modelu Supervised Learning na zaawansowany **Hybryd Neuroevolution**.
 
 ---
 
