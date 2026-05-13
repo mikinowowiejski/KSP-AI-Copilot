@@ -23,13 +23,14 @@ public class CommandWriterAI {
         System.out.println("====== MÓZG AI ZAŁADOWANY  ======");
     }
 
-    public void writeCommand(double altitude, double spd, double twr, double q, double apo, String outputPath) throws IOException {
+    public void writeCommand(double altitude, double spd, double twr, double q, double apo, double etaApo, String outputPath) throws IOException {
 
         double nAlt = altitude / 70000.0;
         double nSpd = spd / 2500.0;
         double nTwr = twr / 10.0;
         double nQ = q / 0.5;
         double nApo = apo / 80000;
+        double nEta = etaApo / 100;
 
         if (aiModel == null) {
             throw new IllegalStateException("Model AI nie został załadowany! Wywołaj loadAI() przed lotem.");
@@ -37,7 +38,7 @@ public class CommandWriterAI {
 
         double normalizedAltitude = altitude / 50000.0;
 
-        INDArray input = Nd4j.create(new double[]{ nAlt, nSpd, nTwr, nQ, nApo }, new int[]{1, 5});
+        INDArray input = Nd4j.create(new double[]{ nAlt, nSpd, nTwr, nQ, nApo, nEta }, new int[]{1, 6});
 
         INDArray output = aiModel.output(input);
 
@@ -46,30 +47,29 @@ public class CommandWriterAI {
         if (predictedPitch < 0.0) predictedPitch = 0.0;
         if (predictedPitch > 90.0) predictedPitch = 90.0;
 
-        if (Math.abs(predictedPitch - lastWrittenPitch) < 0.1) {
-            return;
-        }
+        writeToCsvWithLock(predictedPitch, outputPath);
 
-        String command = String.format(Locale.US, "%.2f", predictedPitch);
+    }
+
+    private void writeToCsvWithLock(double pitch, String outputPath) throws IOException
+    {
+        if (Math.abs(pitch - lastWrittenPitch) < 0.1) return;
 
         Path finalPath = Path.of(outputPath);
-        Path tempPath = Path.of(outputPath + ".tmp");
-
-        Files.writeString(tempPath, command,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
+        Path lockPath = Path.of(outputPath + ".lock");
+        String command = String.format(Locale.US, "%.2f", pitch);
 
         try {
-            Files.move(tempPath, finalPath,
-                    StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
-
-            System.out.println(String.format("AI Copilot: Wysokość %.0fm -> Wychylenie: %.2f°",
-                    altitude, predictedPitch));
-
-            lastWrittenPitch = predictedPitch;
-
-        } catch (IOException e) {
+            Files.writeString(lockPath, "LOCKED");
+            Files.writeString(finalPath, command, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            lastWrittenPitch = pitch;
+        } finally {
+            Files.deleteIfExists(lockPath);
         }
+    }
+
+
+    public void setAiModel(MultiLayerNetwork model) {
+        this.aiModel = model;
     }
 }

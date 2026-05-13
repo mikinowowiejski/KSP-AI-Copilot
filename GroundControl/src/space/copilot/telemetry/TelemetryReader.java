@@ -15,7 +15,6 @@ public class TelemetryReader {
     public List<TelemetryPoint> readLog(String absoluteFilePath) throws IOException
     {
         return Files.lines(Path.of(absoluteFilePath))
-                .skip(1)
                 .filter(line -> !line.isBlank())
                 .map(this::parseLine)
                 .toList();
@@ -36,8 +35,9 @@ public class TelemetryReader {
         double twr = Double.parseDouble(parts[3]);
         double q = Double.parseDouble(parts[4]);
         double apoapsis = Double.parseDouble(parts[5]);
-        double pitch = Double.parseDouble(parts[6]);
+        double etaApo = Double.parseDouble(parts[6]);
+        double pitch = Double.parseDouble(parts[7]);
 
-        return new TelemetryPoint(time,altitude,velocity,twr, q, apoapsis, pitch);
+        return new TelemetryPoint(time,altitude,velocity,twr, q, apoapsis,etaApo, pitch);
     }
 }

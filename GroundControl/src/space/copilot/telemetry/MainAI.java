@@ -29,6 +29,7 @@ public class MainAI {
                     double currentTwr = latestData.twr();
                     double currentQ = latestData.q();
                     double currentApo = latestData.apoapsis();
+                    double currentEta = latestData.etaApo();
 
                     // System uzbraja się tylko na platformie startowej
                     if (!isArmed && currentAlt < 1000) {
@@ -37,12 +38,12 @@ public class MainAI {
                     }
 
                     if (isArmed) {
-                        writer.writeCommand(currentAlt, currentSpd, currentTwr, currentQ, currentApo,  commandPath);
+                        writer.writeCommand(currentAlt, currentSpd, currentTwr, currentQ, currentApo, currentEta, commandPath);
 
-                        if (currentAlt > 50000) {
+                        /*if (currentAlt > 50000) {
                             System.out.println("KONIEC MISJI - OSIĄGNIĘTO PUŁAP OPERACYJNY.");
                             break;
-                        }
+                        }*/
                     }
                 }
                 Thread.sleep(200);

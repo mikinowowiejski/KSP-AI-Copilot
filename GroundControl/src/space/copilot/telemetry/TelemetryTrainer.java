@@ -27,15 +27,13 @@ public class TelemetryTrainer {
         System.out.println("ZACZYNAMY TRENING AI...");
 
         List<String> lines = Files.readAllLines(Paths.get(trainingDataPath));
-        lines.remove(0);
-
 
         if (lines.get(0).contains("Czas_s")) {
             lines.remove(0);
         }
 
         int numRows = lines.size();
-        INDArray input = Nd4j.create(numRows, 5);
+        INDArray input = Nd4j.create(numRows, 6);
         INDArray output = Nd4j.create(numRows, 1);
 
         for (int i = 0; i < numRows; i++) {
@@ -45,13 +43,15 @@ public class TelemetryTrainer {
             double twr = Double.parseDouble(cols[3]);
             double q = Double.parseDouble(cols[4]);
             double apo = Double.parseDouble(cols[5]);
-            double pitch = Double.parseDouble(cols[6]);
+            double etaApo = Double.parseDouble(cols[6]);
+            double pitch = Double.parseDouble(cols[7]);
 
             double nAlt = altitude / 70000.0;
             double nSpd = speed / 2500.0;
             double nTwr = twr / 10.0;
             double nQ = q / 0.5;
             double nApo = apo / 80000;
+            double nEta = etaApo / 100;
 
             // Normalizacja danych (AI lubi liczby od 0 do 1)
             input.putScalar(new int[]{i, 0}, nAlt);
@@ -59,6 +59,7 @@ public class TelemetryTrainer {
             input.putScalar(new int[]{i, 2}, nTwr);
             input.putScalar(new int[]{i, 3}, nQ);
             input.putScalar(new int[]{i, 4}, nApo);
+            input.putScalar(new int[]{i, 5}, nEta);
 
             output.putScalar(new int[]{i, 0}, pitch / 90.0);
         }
@@ -72,7 +73,7 @@ public class TelemetryTrainer {
                 .updater(new Adam(0.001))
                 .weightInit(WeightInit.XAVIER)
                 .list()
-                .layer(new DenseLayer.Builder().nIn(5).nOut(32).activation(Activation.TANH).build())
+                .layer(new DenseLayer.Builder().nIn(6).nOut(32).activation(Activation.TANH).build())
                 .layer(new DenseLayer.Builder().nIn(32).nOut(32).activation(Activation.TANH).build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.MSE)
                         .activation(Activation.IDENTITY).nIn(32).nOut(1).build())

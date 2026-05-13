@@ -19,17 +19,10 @@ public class Main {
             try {
                 List<TelemetryPoint> flightData = reader.readLog(telemetryPath);
 
-
-
-
-
                 if (!flightData.isEmpty()) {
                     TelemetryPoint latestData = flightData.get(flightData.size() - 1);
 
                     double alt = latestData.altitude();
-                    double spd = latestData.velocity();
-                    double twr = latestData.twr();
-                    double q = latestData.q();
                     double apoapsis = latestData.apoapsis();
 
                     if (!isArmed && alt < 1000) {
@@ -38,13 +31,13 @@ public class Main {
                     }
                     if(isArmed)
                     {
-                        writer.writeCommand(alt,spd,twr,q, apoapsis, commandPath);
+                        writer.writeCommand(alt, apoapsis, commandPath);
 
-                        if (latestData.altitude() > 50000) {
+                        /*if (latestData.altitude() > 50000) {
                             System.out.println("====== MECO: OPUSZCZONO ATMOSFERĘ ======");
                             System.out.println("Misja zakończona sukcesem. Autopilot wyłączony.");
                             break;
-                        }
+                        }*/
                     }
 
                 }

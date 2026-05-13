@@ -1,100 +1,132 @@
 @LAZYGLOBAL OFF.
+
+wait until ship:unpacked.
+
 CLEARSCREEN.
 
 LOCAL cmdPath IS "0:/sterowanie.csv".
 LOCAL telPath IS "0:/telemetria.csv".
+LOCAL resPath IS "0:/result.csv".
 
-PRINT " KSP AI COPILOT - SYSTEM GOTOWY ".
-PRINT "Synchronizacja z Java...".
-WAIT 1.
+IF EXISTS(resPath) {
+    DELETEPATH(resPath).
+}
+
+PRINT "=== SYSTEM KSP AI: TRENING HYBRYDOWY ===".
+PRINT "Oczekiwanie na reset Javy...".
+WAIT 2.
 
 LOCAL targetPitch IS 90.0.
+LOCAL currentThrottle IS 1.0.
 LOCAL start_time IS TIME:SECONDS.
 
- PRINT "Uruchamianie procedury startowej...".
-LOCK THROTTLE TO 1.0.
-LOCK STEERING TO HEADING(90, targetPitch).
 
-WAIT 1.
+
+LOCAL max_alt IS 0.
+LOCAL is_crashed IS FALSE.
+
+LOCAL flight_phase IS 1.
+
+LOCK STEERING TO HEADING(90, targetPitch).
+LOCK THROTTLE TO currentThrottle.
 PRINT "3... 2... 1... ZAPLON!".
 STAGE.
 
-CLEARSCREEN.
-
-
-UNTIL SHIP:APOAPSIS > 80000 {
+UNTIL SHIP:PERIAPSIS >= 75000 OR is_crashed {
 
     IF MAXTHRUST = 0 {
-        PRINT "Flameout! Odrzucanie czlonu..." AT (0, 10).
-        STAGE.
-        WAIT 0.5.
+        IF STAGE:NUMBER > 0 { STAGE. WAIT 0.5. }
     }
 
-    IF EXISTS(cmdPath) {
-        LOCAL raw IS OPEN(cmdPath):READALL():STRING.
-        IF raw:LENGTH > 0 {
-            SET targetPitch TO raw:TONUMBER(targetPitch).
+    IF flight_phase = 1 {
+        SET currentThrottle TO 1.0.
+        IF SHIP:APOAPSIS >= 80000 {
+            SET flight_phase TO 2.
+            SET currentThrottle TO 0.0.
         }
     }
+    ELSE IF flight_phase = 2 {
+       SET currentThrottle TO 0.0.
+        IF SHIP:ALTITUDE > 70000 AND ETA:APOAPSIS < 30 {
+            SET flight_phase TO 3.
+            SET currentThrottle TO 1.0.
+        }
+    }
+    ELSE IF flight_phase = 3 {
+        SET currentThrottle to 1.0.
+    }
 
-    LOCAL current_time IS ROUND(TIME:SECONDS - start_time, 2).
-    LOCAL alti IS ROUND(SHIP:ALTITUDE, 2).
-    LOCAL spd IS ROUND(SHIP:AIRSPEED, 2).
+    IF SHIP:ALTITUDE > max_alt { SET max_alt TO SHIP:ALTITUDE. }
 
-    LOCAL currentTWR IS SHIP:AVAILABLETHRUST/ (SHIP:MASS * 9.81). //TWR na kerbinie
-    LOCAL dynPres IS SHIP:Q. //cisnienie dynamiczne
-    LOCAL apo IS ROUND(SHIP:APOAPSIS,2).
+    LOCAL lockPath IS cmdPath + ".lock".
 
-    // Format: Czas_s, Wysokosc_m, Predkosc_ms, TWR, Q, Pochylenie_deg,
-    LOCAL logLine IS current_time + "," + alti + "," + spd + "," + ROUND(currentTWR, 2) + "," + ROUND(dynPres,4) + "," + apo + "," + ROUND(targetPitch, 2).
+    IF EXISTS(cmdPath) AND NOT EXISTS(lockPath) {
+        LOCAL raw IS OPEN(cmdPath):READALL():STRING.
+        IF raw:LENGTH > 0 { SET targetPitch TO raw:TONUMBER(targetPitch). }
+    }
+
+    LOCAL currentApo IS ROUND(SHIP:APOAPSIS, 2).
+    LOCAL etaApo IS ROUND(ETA:APOAPSIS, 2).
+    IF etaApo > 100000 { SET etaApo TO 999. }
+
+    LOCAL currentTWR IS 0.
+    IF SHIP:MASS > 0 { SET currentTWR TO SHIP:AVAILABLETHRUST / (SHIP:MASS * 9.81). }
+
+
+    PRINT "Wysokosc:  " + ROUND(SHIP:ALTITUDE) + " m       " AT (2, 4).
+    PRINT "Predkosc:  " + ROUND(SHIP:AIRSPEED) + " m/s     " AT (2, 5).
+    PRINT "Apoapsis:  " + currentApo + " m                " AT (2, 6).
+    PRINT "Periapsis: " + ROUND(SHIP:PERIAPSIS) + " m      " AT (2, 7).
+    PRINT "ETA Apo:   " + etaApo + " s                  " AT (2, 8).
+    PRINT "Kat (AI):  " + ROUND(targetPitch, 2) + " deg    " AT (2, 10).
+    PRINT "Faza lotu: " + flight_phase + "                " AT (2, 11).
+
+
+    LOCAL logLine IS ROUND(TIME:SECONDS - start_time, 2) + "," + ROUND(SHIP:ALTITUDE, 2) + "," + ROUND(SHIP:AIRSPEED, 2) + "," + ROUND(currentTWR, 2) + "," + ROUND(SHIP:Q, 4) + "," + currentApo + "," + etaApo + "," + ROUND(targetPitch, 2).
     LOG logLine TO telPath.
 
-    PRINT "=== FAZA 1: WZNOSZENIE ATMOSFERYCZNE ===" AT (0, 2).
-    PRINT "Wysokosc:       " + ROUND(SHIP:ALTITUDE) + " m      " AT (0, 4).
-    PRINT "Apoapsis (Cel): " + ROUND(SHIP:APOAPSIS) + " / 80000 m  " AT (0, 5).
-    PRINT "Predkosc:       " + ROUND(SHIP:AIRSPEED) + " m/s    " AT (0, 6).
-    PRINT "Kąt AI (Pitch): " + ROUND(targetPitch, 2) + " st     " AT (0, 7).
+    IF SHIP:ALTITUDE < 50000 AND targetPitch < -10 {
+        PRINT "KATASTROFA: Nos rakiety opadł za bardzo!". SET is_crashed TO TRUE.
+    }
+    IF SHIP:ALTITUDE > 1000 AND SHIP:VERTICALSPEED < -10 AND SHIP:ALTITUDE < 60000 {
+        PRINT "KATASTROFA: Rakieta zaczęła spadać!". SET is_crashed TO TRUE.
+    }
+    IF MAXTHRUST = 0 AND STAGE:NUMBER = 0 AND SHIP:PERIAPSIS < (SHIP:APOAPSIS - 5000) {
+        PRINT "KATASTROFA: Zabrakło paliwa przed orbitą!". SET is_crashed TO TRUE.
+    }
+
+    IF SHIP:APOAPSIS > 100000 AND SHIP:PERIAPSIS < 70000 {
+        PRINT "KATASTROFA: Rakieta przestrzeliła orbitę (Pionowy lot)!". SET is_crashed TO TRUE.
+    }
 
     WAIT 0.1.
 }
 
-
-CLEARSCREEN.
-PRINT "=== FAZA 2: DRYF POZA ATMOSFERE ===" AT (0, 2).
-PRINT "Osiagnieto cel Apoapsis. Odciecie silnika glownego." AT (0, 4).
-
-LOCK THROTTLE TO 0.0.
-SET targetPitch TO 0. // Kładziemy rakietę poziomo (równolegle do planety)
-
-UNTIL SHIP:ALTITUDE > 70000 {
-    PRINT "Wysokosc: " + ROUND(SHIP:ALTITUDE) + " / 70000 m (Wyjscie z prozni)" AT (0, 6).
-    PRINT "Czas do Apoapsis: " + ROUND(ETA:APOAPSIS) + " s    " AT (0, 7).
-    WAIT 0.5.
-}
-
-CLEARSCREEN.
-PRINT "=== FAZA 3: CYRKULARYZACJA ORBITY ===" AT (0, 2).
-PRINT "Oczekiwanie na optymalny moment zaplonu..." AT (0, 4).
-
-UNTIL ETA:APOAPSIS < 30 {
-    PRINT "Zaplon za: " + ROUND(ETA:APOAPSIS - 30) + " s    " AT (0, 6).
-    WAIT 0.1.
-}
-
-PRINT "burn!" AT (0, 8).
-LOCK THROTTLE TO 1.0.
-
-UNTIL SHIP:PERIAPSIS > 75000 {
-
-    IF MAXTHRUST = 0 { STAGE. WAIT 0.5. }
-    PRINT "Podnoszenie Periapsis: " + ROUND(SHIP:PERIAPSIS) + " / 75000 m   " AT (0, 10).
-    WAIT 0.1.
-}
-
-
-LOCK THROTTLE TO 0.0.
+// === KONIEC LOTU I OCENA ===
+LOCK THROTTLE TO 0.
 UNLOCK STEERING.
 CLEARSCREEN.
-PRINT "MISJA ZAKONCZONA SUKCESEM!".
-PRINT "Koncowe Apoapsis:  " + ROUND(SHIP:APOAPSIS) + " m".
-PRINT "Koncowe Periapsis: " + ROUND(SHIP:PERIAPSIS) + " m".
+
+LOCAL finalDV IS 0.
+IF NOT is_crashed {
+    PRINT "=== ORBITA OSIAGNIETA! ===".
+
+    LOCAL resList IS LIST().
+    LIST RESOURCES IN resList.
+
+    FOR res IN resList {
+        IF res:NAME = "LiquidFuel" { SET finalDV TO finalDV + res:AMOUNT. }
+    }
+} ELSE {
+    PRINT "=== MISJA ZAKONCZONA PORAZKA ===".
+}
+
+LOCAL crashedNum IS 0.
+IF is_crashed { SET crashedNum TO 1. }
+
+LOCAL resultLine IS ROUND(max_alt) + "," + ROUND(SHIP:APOAPSIS) + "," + ROUND(SHIP:PERIAPSIS) + "," + ROUND(finalDV) + "," + crashedNum.
+LOG resultLine TO resPath.
+
+PRINT "Zapisano wynik epoki. RESTART ZA 3 SEKUNDY...".
+WAIT 3.
+KUNIVERSE:REVERTTOLAUNCH().

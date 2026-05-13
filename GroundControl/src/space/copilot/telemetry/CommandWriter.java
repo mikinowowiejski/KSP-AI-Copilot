@@ -11,7 +11,7 @@ public class CommandWriter {
 
     private double lastWrittenPitch = -999.0;
 
-    public void writeCommand(double currentAltitude, double spd, double twr, double q, double apoapsis, String outputPath) throws IOException {
+    public void writeCommand(double currentAltitude, double apoapsis, String outputPath) throws IOException {
         double targetPitch = calculateGravityTurn(currentAltitude, apoapsis);
 
         if (Math.abs(targetPitch - lastWrittenPitch) < 0.1) {
@@ -21,22 +21,25 @@ public class CommandWriter {
         String command = String.format(Locale.US, "%.2f", targetPitch);
 
         Path finalPath = Path.of(outputPath);
-        Path tempPath = Path.of(outputPath + ".tmp"); // Plik tymczasowy
-
-        Files.writeString(tempPath, command,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
+        Path lockPath = Path.of(outputPath + ".lock");
 
         try {
-            Files.move(tempPath, finalPath,
-                    StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
+            Files.writeString(lockPath, "LOCKED");
+
+            Files.writeString(finalPath, command,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
 
             System.out.println(String.format("Ground Control: Wysokość %.0fm -> Kąt: %s°",
                     currentAltitude, command));
 
             lastWrittenPitch = targetPitch;
+
         } catch (IOException e) {
+        } finally {
+            try {
+                Files.deleteIfExists(lockPath);
+            } catch (IOException e) {}
         }
     }
 
