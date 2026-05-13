@@ -1,30 +1,46 @@
-# 🚀 KSP AI Copilot - Autopilot oparty na Sieciach Neuronowych
+# 🚀 KSP AI Copilot
 
-Projekt inteligentnego systemu sterowania rakietą w grze **Kerbal Space Program (KSP)**. System wykorzystuje architekturę sieci neuronowych do optymalizacji manewru wznoszenia (**Gravity Turn**) i osiągania stabilnej orbity.
+> **Autopilot oparty na Sieciach Neuronowych dla Kerbal Space Program**
+
+Projekt inteligentnego systemu sterowania rakietą w grze *Kerbal Space Program (KSP)*. System wykorzystuje architekturę sieci neuronowych do optymalizacji manewru wznoszenia (Gravity Turn) i osiągania stabilnej orbity.
+
+---
 
 ## 🛠️ Architektura Systemu
 
-Projekt składa się z dwóch współpracujących modułów:
+Projekt składa się z dwóch ściśle współpracujących ze sobą modułów:
 
-1.  **Moduł Kontroli (KerboScript/kOS):** Skrypt działający wewnątrz gry, który odpowiada za egzekucję lotu, staging oraz dodawanie danych telemetrycznych.
-2.  **Mózg AI (Java/Deeplearning4j):** Aplikacja zewnętrzna, która analizuje dane w czasie rzeczywistym i podejmuje decyzje o kącie nachylenia rakiety.
+* **Moduł Kontroli (KerboScript/kOS):** Skrypt działający wewnątrz gry, który odpowiada za egzekucję lotu, staging oraz wprowadzanie danych telemetrycznych.
+* **Mózg AI (Java/Deeplearning4j):** Zewnętrzna aplikacja, która analizuje dane w czasie rzeczywistym i podejmuje decyzje o optymalnym kącie nachylenia rakiety.
 
-### Pętla Sterowania (Control Loop):
-* **Telemetria:** kOS zapisuje dane (wysokość, prędkość) do pliku `telemetria.csv`.
-* **Analiza:** Java odczytuje ostatnią linię, normalizuje dane i przepuszcza je przez sieć neuronową.
-* **Decyzja:** Model AI wylicza optymalny kąt (Pitch) i zapisuje go w `sterowanie.csv`.
-* **Reakcja:** kOS odczytuje komendę i koryguje kurs rakiety.
+### 🔄 Pętla Sterowania (Control Loop)
+1.  **Telemetria:** kOS zapisuje bieżące dane lotu (wysokość, prędkość) do pliku `telemetria.csv`.
+2.  **Analiza:** Moduł w Javie odczytuje ostatnią linię, normalizuje dane i przetwarza je przez sieć neuronową.
+3.  **Decyzja:** Model AI wylicza optymalny kąt (Pitch) i zapisuje go w pliku `sterowanie.csv`.
+4.  **Reakcja:** kOS odczytuje komendę i natychmiast koryguje kurs rakiety.
 
-
+---
 
 ## 🧠 Model AI i Logika Lotu
 
-W projekcie zaimplementowano dwa podejścia do sterowania:
+W projekcie zaimplementowano dwa równoległe podejścia do sterowania:
 
 * **Model Matematyczny (Baseline):** Wykorzystuje funkcję paraboliczną (`shapeFactor = 1.7`) do wyznaczania idealnego łuku lotu w celu zminimalizowania oporów atmosferycznych.
-* **Sieć Neuronowa (DL4J):** * Architektura: Wielowarstwowy Perceptron (Dense Layers).
-    * Funkcja Aktywacji: `TANH` (Tangens hiperboliczny) dla płynnej regulacji kątów.
-    * Optymalizator: `Adam` (learning rate: 0.001).
+* **Ewolucja Sieci Neuronowej (DL4J):**
+
+   - [1] **Etap 1: Behavioral Cloning (Uczenie Nadzorowane):** Pierwotna wersja systemu opierała się na naśladownictwie (Supervisor). Sieć uczyła się kopiować optymalne trajektorie z plików wzorcowych. Metoda ta zapewniała stabilność w znanych warunkach, ale brakowało jej elastyczności przy nieprzewidzianych anomaliach.
+
+   - [2] **Etap 2: Hybrid RL (Reinforcement Learning):** Obecna wersja wykorzystuje podejście hybrydowe. Model łączy bazę wiedzy z uczenia nadzorowanego z algorytmami uczenia przez wzmacnianie. Dzięki temu AI nie tylko „kopiuje” ruchy, ale aktywnie optymalizuje kąt nachylenia (Pitch) w czasie rzeczywistym, dążąc do maksymalizacji nagrody (np. stabilności orbity i oszczędności paliwa).
+
+* **Specyfikacja Techniczna Modelu:**
+
+- [ ] **Architektura:** Wielowarstwowy Perceptron (MLP - Dense Layers).
+
+- [ ] **Funkcja Aktywacji:** TANH (Tangens hiperboliczny) – wybrana ze względu na zapewnienie płynności zmian kątowych, co jest kluczowe dla stabilności aerodynamicznej rakiety.
+
+- [ ] **Optymalizator: Adam** (learning rate: 0.001) – zapewniający szybką zbieżność modelu podczas sesji treningowych.
+
+---
 
 ## 🚀 Osiągnięcia (Progress Log)
 
@@ -32,22 +48,23 @@ W projekcie zaimplementowano dwa podejścia do sterowania:
 - [x] **Automatyczny Staging:** System wykrywa brak ciągu i automatycznie odrzuca puste człony rakiety.
 - [x] **Gravity Turn:** Implementacja zoptymalizowanego łuku lotu (parabola).
 - [x] **Stabilna Orbita:** Skrypt automatycznie wykonuje manewr cyrkularyzacji w Apoapsis, stabilizując orbitę powyżej 70 km.
+- [x] **Reinforcement Learning** Przejście z prostego modelu Supervised Learning na zaawansowany **Hybryd RL**.
+
+---
 
 ## 📋 Wymagania
 
-* **Kerbal Space Program** z zainstalowanym modem **kOS**.
-* **Java 17+**
-* Biblioteki: **Deeplearning4j (DL4J)**, **ND4J**.
+* Gra **Kerbal Space Program** z zainstalowanym modem **kOS**.
+* **Java 17** (lub nowsza).
+* Biblioteki AI: **Deeplearning4j (DL4J)** oraz **ND4J**.
+
+---
 
 ## ⚙️ Jak uruchomić?
 
-1.  Uruchom grę KSP i umieść rakietę na platformie startowej.
-2.  Uruchom klasę `MainAI` w środowisku Java.
-3.  W terminalu kOS wewnątrz gry wpisz:
-    ```kerboscript
-    SWITCH TO 0.
-    run autopilot.
-    ```
-
----
-*Projekt rozwijany hobbystycznie w ramach nauki uczenia maszynowego i inżynierii systemów kosmicznych.*
+1. Uruchom grę KSP i umieść przygotowaną rakietę na platformie startowej.
+2. Uruchom główną klasę `MainAI` w swoim środowisku programistycznym (Java).
+3. Otwórz terminal kOS wewnątrz gry i wpisz poniższe komendy:
+   ```kerboscript
+   SWITCH TO 0.
+   run autopilot.
