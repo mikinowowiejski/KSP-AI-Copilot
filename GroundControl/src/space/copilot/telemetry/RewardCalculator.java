@@ -23,6 +23,11 @@ public class RewardCalculator {
             reward += ((peri + 600000) / 500.0);
         }
 
+        if(peri > 0)
+        {
+            reward += (peri / 20.0);
+        }
+
         if(peri >= 70000)
         {
             reward+= 5000.0;
@@ -30,8 +35,10 @@ public class RewardCalculator {
 
         }
 
-        double difference = Math.abs(apo - peri);
-        reward -= (difference * 0.01);
+        if (apo > 0 && peri > -600000) {
+            double difference = Math.abs(apo - peri);
+            reward -= (difference * 0.01);
+        }
 
         return reward;
     }
