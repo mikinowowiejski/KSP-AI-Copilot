@@ -69,21 +69,31 @@ public class EvolutionTrainer {
         {
             System.out.println("\n--- GENERACJA " + gen + "---");
 
-            List<MultiLayerNetwork> children = createMutants(currentBestModel, childrenPerGen);
+            List<MultiLayerNetwork> children = createMutants(currentBestModel, childrenPerGen-1);
+
+            children.add(0, currentBestModel.clone());
 
             MultiLayerNetwork bestChild = null;
             double bestScore = -999999.0;
 
             for(int i = 0; i < children.size(); i++)
             {
-                System.out.println(">> Lot mutanta nr " + (i + 1) + "/" + childrenPerGen);
+                if (i == 0) {
+                    System.out.println(">> Lot Mistrza (Rodzica) z poprzedniej generacji... ");
+                } else {
+                    System.out.println(">> Lot mutanta nr " + i + "/" + (childrenPerGen - 1));
+                }
                 MultiLayerNetwork child = children.get(i);
 
                 writer.setAiModel(child);
 
                 double score = performFlightAndWaitForResult();
 
-                System.out.println("Mutant " + (i + 1) + " zdobył: " + score + " pkt.");
+                if (i == 0) {
+                    System.out.println("Mistrz zdobył: " + score + " pkt.");
+                } else {
+                    System.out.println("Mutant " + i + " zdobył: " + score + " pkt.");
+                }
 
                 if (score > bestScore) {
                     bestScore = score;
@@ -141,6 +151,8 @@ public class EvolutionTrainer {
                         );
 
                         Files.deleteIfExists(resFile);
+                        Files.deleteIfExists(Path.of(telemetryPath));
+                        Files.deleteIfExists(Path.of(commandPath));
 
                         System.out.println("   Czekam na przeładowanie fizyki w KSP...");
                         Thread.sleep(5000);

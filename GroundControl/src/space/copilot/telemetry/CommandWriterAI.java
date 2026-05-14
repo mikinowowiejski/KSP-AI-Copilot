@@ -43,28 +43,38 @@ public class CommandWriterAI {
         INDArray output = aiModel.output(input);
 
         double predictedPitch = output.getDouble(0) * 90.0;
-
         if (predictedPitch < 0.0) predictedPitch = 0.0;
         if (predictedPitch > 90.0) predictedPitch = 90.0;
 
-        writeToCsvWithLock(predictedPitch, outputPath);
+        double predictedThrottle = output.getDouble(1);
+        if (predictedThrottle < 0.0) predictedThrottle = 0.0;
+        if (predictedThrottle > 1.0) predictedThrottle = 1.0;
+
+        double rawStaging = output.getDouble(2);
+        int stagingFlag = (rawStaging > 0.8) ? 1 : 0;
+
+
+        writeToCsvWithLock(predictedPitch, predictedThrottle, stagingFlag, outputPath);
 
     }
 
-    private void writeToCsvWithLock(double pitch, String outputPath) throws IOException
+    private void writeToCsvWithLock(double pitch, double throttle, int staging, String outputPath) throws IOException
     {
-        if (Math.abs(pitch - lastWrittenPitch) < 0.1) return;
+        //if (Math.abs(pitch - lastWrittenPitch) < 0.1) return;
 
         Path finalPath = Path.of(outputPath);
-        Path lockPath = Path.of(outputPath + ".lock");
-        String command = String.format(Locale.US, "%.2f", pitch);
+        Path tempPath = Path.of(outputPath + ".tmp");
+
+        String command = String.format(java.util.Locale.US, "%.2f,%.2f,%d", pitch, throttle, staging);
 
         try {
-            Files.writeString(lockPath, "LOCKED");
-            Files.writeString(finalPath, command, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+            Files.writeString(tempPath, command, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
+            Files.move(tempPath, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
             lastWrittenPitch = pitch;
-        } finally {
-            Files.deleteIfExists(lockPath);
+        } catch (java.io.IOException e) {
+
         }
     }
 

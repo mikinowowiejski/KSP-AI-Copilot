@@ -1,4 +1,5 @@
 @LAZYGLOBAL OFF.
+SET CONFIG:IPU TO 2000.
 
 wait until ship:unpacked.
 
@@ -12,58 +13,61 @@ IF EXISTS(resPath) {
     DELETEPATH(resPath).
 }
 
-PRINT "=== SYSTEM KSP AI: TRENING HYBRYDOWY ===".
+PRINT "=== SYSTEM KSP AI: TRENING HYBRYDOWY - PEŁNA KONTROLA ===".
 PRINT "Oczekiwanie na reset Javy...".
 WAIT 2.
 
 LOCAL targetPitch IS 90.0.
-LOCAL currentThrottle IS 1.0.
+LOCAL targetThrottle IS 1.0.
 LOCAL start_time IS TIME:SECONDS.
 
+//cooldown stagingu
+LOCAL last_stage_time IS TIME:SECONDS + 3.0.
 
 
 LOCAL max_alt IS 0.
 LOCAL is_crashed IS FALSE.
 
-LOCAL flight_phase IS 1.
 
 LOCK STEERING TO HEADING(90, targetPitch).
 LOCK THROTTLE TO currentThrottle.
 PRINT "3... 2... 1... ZAPLON!".
 STAGE.
 
-UNTIL SHIP:PERIAPSIS >= 75000 OR is_crashed {
+UNTIL SHIP:PERIAPSIS >= 75000 OR is_crashed
+        {
+            IF SHIP:ALTITUDE > max_alt { SET max_alt TO SHIP:ALTITUDE. }
 
-    IF MAXTHRUST = 0 {
-        IF STAGE:NUMBER > 0 { STAGE. WAIT 0.5. }
-    }
+            IF EXISTS(cmdPath)
+                    {
+                        LOCAL cmdFile IS OPEN(cmdPath).
 
-    IF flight_phase = 1 {
-        SET currentThrottle TO 1.0.
-        IF SHIP:APOAPSIS >= 80000 {
-            SET flight_phase TO 2.
-            SET currentThrottle TO 0.0.
+                        IF cmdFile:ISTYPE("VolumeFile")
+                                {
+                                    LOCAL raw IS cmdFile:READALL():STRING.
+
+                                    if raw:LENGTH > 0
+                                            {
+                                                LOCAL parts IS raw:SPLIT(",").
+
+                                                IF parts:LENGTH = 3
+                                                        {
+                                                            SET targetPitch TO parts[0].TONUMBER(targetPitch).
+                                                            SET targetThrottle TO parts[1]:TONUMBER(targetThrottle).
+                                                            LOCAL stagingSignal IS parts[2]:TONUMBER(0).
+
+                                                            IF stagingSignal = 1 AND TIME:SECONDS > (last_stage_time + 2.0) {
+                                                                STAGE.
+                                                                SET last_stage_time TO TIME:SECONDS.
+                                                                PRINT "=== AI WYKONALO STAGING! ===" AT (2, 13).
+                                                        }
+
+                                            }
+
+                                }
+                    }
+
         }
-    }
-    ELSE IF flight_phase = 2 {
-       SET currentThrottle TO 0.0.
-        IF SHIP:ALTITUDE > 70000 AND ETA:APOAPSIS < 30 {
-            SET flight_phase TO 3.
-            SET currentThrottle TO 1.0.
-        }
-    }
-    ELSE IF flight_phase = 3 {
-        SET currentThrottle to 1.0.
-    }
-
-    IF SHIP:ALTITUDE > max_alt { SET max_alt TO SHIP:ALTITUDE. }
-
-    LOCAL lockPath IS cmdPath + ".lock".
-
-    IF EXISTS(cmdPath) AND NOT EXISTS(lockPath) {
-        LOCAL raw IS OPEN(cmdPath):READALL():STRING.
-        IF raw:LENGTH > 0 { SET targetPitch TO raw:TONUMBER(targetPitch). }
-    }
 
     LOCAL currentApo IS ROUND(SHIP:APOAPSIS, 2).
     LOCAL etaApo IS ROUND(ETA:APOAPSIS, 2).
@@ -79,7 +83,8 @@ UNTIL SHIP:PERIAPSIS >= 75000 OR is_crashed {
     PRINT "Periapsis: " + ROUND(SHIP:PERIAPSIS) + " m      " AT (2, 7).
     PRINT "ETA Apo:   " + etaApo + " s                  " AT (2, 8).
     PRINT "Kat (AI):  " + ROUND(targetPitch, 2) + " deg    " AT (2, 10).
-    PRINT "Faza lotu: " + flight_phase + "                " AT (2, 11).
+    PRINT "Ciag (AI): " + ROUND(targetThrottle * 100) + " %        " AT (2, 11).
+
 
 
     LOCAL logLine IS ROUND(TIME:SECONDS - start_time, 2) + "," + ROUND(SHIP:ALTITUDE, 2) + "," + ROUND(SHIP:AIRSPEED, 2) + "," + ROUND(currentTWR, 2) + "," + ROUND(SHIP:Q, 4) + "," + currentApo + "," + etaApo + "," + ROUND(targetPitch, 2).

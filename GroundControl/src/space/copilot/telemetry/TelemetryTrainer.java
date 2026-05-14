@@ -34,7 +34,7 @@ public class TelemetryTrainer {
 
         int numRows = lines.size();
         INDArray input = Nd4j.create(numRows, 6);
-        INDArray output = Nd4j.create(numRows, 1);
+        INDArray output = Nd4j.create(numRows, 3);
 
         for (int i = 0; i < numRows; i++) {
             String[] cols = lines.get(i).split(",");
@@ -44,7 +44,10 @@ public class TelemetryTrainer {
             double q = Double.parseDouble(cols[4]);
             double apo = Double.parseDouble(cols[5]);
             double etaApo = Double.parseDouble(cols[6]);
+
             double pitch = Double.parseDouble(cols[7]);
+            double throttle = Double.parseDouble(cols[8]);
+            double staging = Double.parseDouble(cols[9]);
 
             double nAlt = altitude / 70000.0;
             double nSpd = speed / 2500.0;
@@ -62,6 +65,8 @@ public class TelemetryTrainer {
             input.putScalar(new int[]{i, 5}, nEta);
 
             output.putScalar(new int[]{i, 0}, pitch / 90.0);
+            output.putScalar(new int[]{i,1}, throttle);
+            output.putScalar(new int[]{i,2}, staging);
         }
 
         DataSet dataSet = new DataSet(input, output);
@@ -76,7 +81,7 @@ public class TelemetryTrainer {
                 .layer(new DenseLayer.Builder().nIn(6).nOut(32).activation(Activation.TANH).build())
                 .layer(new DenseLayer.Builder().nIn(32).nOut(32).activation(Activation.TANH).build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.MSE)
-                        .activation(Activation.IDENTITY).nIn(32).nOut(1).build())
+                        .activation(Activation.SIGMOID).nIn(32).nOut(3).build())
                 .build();
 
         // 3. Inicjalizacja i trening

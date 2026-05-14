@@ -6,7 +6,7 @@ public class EvolutionMain {
 
         EvolutionTrainer trainer = new EvolutionTrainer();
 
-        String baseModel = "best_evolution_model.zip";
+        String baseModel = "rocket_model.zip";
         int generations = 30;
         int childrenPerGen = 5;
 

@@ -3,6 +3,7 @@ package space.copilot.telemetry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TelemetryReader {
@@ -12,12 +13,38 @@ public class TelemetryReader {
      * Wykorzystuje API Streams do przetwarzania danych "w locie".
      */
 
-    public List<TelemetryPoint> readLog(String absoluteFilePath) throws IOException
-    {
-        return Files.lines(Path.of(absoluteFilePath))
-                .filter(line -> !line.isBlank())
-                .map(this::parseLine)
-                .toList();
+    public List<TelemetryPoint> readLog(String path) {
+        Path filePath = Path.of(path);
+
+        if (!Files.exists(filePath)) {
+            return new ArrayList<>();
+        }
+
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(filePath);
+        } catch (IOException e) {
+
+            return new ArrayList<>();
+        }
+
+        if (lines.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        if (lines.get(0).contains("Czas_s")) {
+            lines.remove(0);
+        }
+
+        List<TelemetryPoint> data = new ArrayList<>();
+        for (String line : lines) {
+            try {
+                data.add(parseLine(line));
+            } catch (Exception e) {
+            }
+        }
+
+        return data;
     }
 
     private TelemetryPoint parseLine(String rawLine)

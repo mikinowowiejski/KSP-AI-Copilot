@@ -18,14 +18,20 @@ public class RewardCalculator {
             reward+= 1000.0;
         }
 
+        if(peri > -60000)
+        {
+            reward += ((peri + 600000) / 500.0);
+        }
+
         if(peri >= 70000)
         {
-            reward+=5000.0;
+            reward+= 5000.0;
             reward+=(finalFuel*3.0);
 
-            double difference = Math.abs(apo - peri);
-            reward -= (difference * 0.01);
         }
+
+        double difference = Math.abs(apo - peri);
+        reward -= (difference * 0.01);
 
         return reward;
     }
