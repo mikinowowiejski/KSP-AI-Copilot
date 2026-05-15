@@ -33,7 +33,7 @@ public class TelemetryTrainer {
         }
 
         int numRows = lines.size();
-        INDArray input = Nd4j.create(numRows, 6);
+        INDArray input = Nd4j.create(numRows, 10);
         INDArray output = Nd4j.create(numRows, 3);
 
         for (int i = 0; i < numRows; i++) {
@@ -45,28 +45,40 @@ public class TelemetryTrainer {
             double apo = Double.parseDouble(cols[5]);
             double etaApo = Double.parseDouble(cols[6]);
 
-            double pitch = Double.parseDouble(cols[7]);
-            double throttle = Double.parseDouble(cols[8]);
-            double staging = Double.parseDouble(cols[9]);
+            double aoa = Double.parseDouble(cols[7]);
+            double isp = Double.parseDouble(cols[8]);
+            double termVelRatio = Double.parseDouble(cols[9]);
+            double gForce = Double.parseDouble(cols[10]);
+
+            double pitch = Double.parseDouble(cols[11]);
+            double throttle = Double.parseDouble(cols[12]);
+            double staging = Double.parseDouble(cols[13]);
 
             double nAlt = altitude / 70000.0;
             double nSpd = speed / 2500.0;
             double nTwr = twr / 10.0;
             double nQ = q / 0.5;
-            double nApo = apo / 80000;
-            double nEta = etaApo / 100;
+            double nApo = apo / 80000.0;
+            double nEta = etaApo / 100.0;
+            double nAoA = aoa / 20.0;
+            double nIsp = isp / 400.0;
+            double nTerm = termVelRatio;
+            double nG = gForce / 10.0;
 
-            // Normalizacja danych (AI lubi liczby od 0 do 1)
             input.putScalar(new int[]{i, 0}, nAlt);
             input.putScalar(new int[]{i, 1}, nSpd);
             input.putScalar(new int[]{i, 2}, nTwr);
             input.putScalar(new int[]{i, 3}, nQ);
             input.putScalar(new int[]{i, 4}, nApo);
             input.putScalar(new int[]{i, 5}, nEta);
+            input.putScalar(new int[]{i, 6}, nAoA);
+            input.putScalar(new int[]{i, 7}, nIsp);
+            input.putScalar(new int[]{i, 8}, nTerm);
+            input.putScalar(new int[]{i, 9}, nG);
 
             output.putScalar(new int[]{i, 0}, pitch / 90.0);
-            output.putScalar(new int[]{i,1}, throttle);
-            output.putScalar(new int[]{i,2}, staging);
+            output.putScalar(new int[]{i, 1}, throttle);
+            output.putScalar(new int[]{i, 2}, staging);
         }
 
         DataSet dataSet = new DataSet(input, output);
@@ -78,8 +90,8 @@ public class TelemetryTrainer {
                 .updater(new Adam(0.001))
                 .weightInit(WeightInit.XAVIER)
                 .list()
-                .layer(new DenseLayer.Builder().nIn(6).nOut(32).activation(Activation.TANH).build())
-                .layer(new DenseLayer.Builder().nIn(32).nOut(32).activation(Activation.TANH).build())
+                .layer(new DenseLayer.Builder().nIn(10).nOut(64).activation(Activation.TANH).build())
+                .layer(new DenseLayer.Builder().nIn(64).nOut(32).activation(Activation.TANH).build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.MSE)
                         .activation(Activation.SIGMOID).nIn(32).nOut(3).build())
                 .build();
@@ -89,7 +101,7 @@ public class TelemetryTrainer {
         model.init();
 
         System.out.println("Uczenie sieci (to może chwilę potrwać)...");
-        for (int epoch = 0; epoch < 400; epoch++) {
+        for (int epoch = 0; epoch < 600; epoch++) {
             iterator.reset();
             model.fit(iterator);
 
