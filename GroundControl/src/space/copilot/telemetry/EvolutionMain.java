@@ -6,9 +6,9 @@ public class EvolutionMain {
 
         EvolutionTrainer trainer = new EvolutionTrainer();
 
-        String baseModel = "best_evolution_model.zip";
+        String baseModel = "absolute_master.zip";
         int generations = 100;
-        int childrenPerGen = 10;
+        int childrenPerGen = 25;
 
         try {
             trainer.runEvolution(baseModel, generations, childrenPerGen);

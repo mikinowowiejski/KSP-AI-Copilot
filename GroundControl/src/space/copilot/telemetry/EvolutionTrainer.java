@@ -30,7 +30,7 @@ import java.util.List;
 public class EvolutionTrainer {
 
     private static final double NOISE_SCALE = 0.05;
-    private static final double MUTATION_RATE = 0.3;
+    private static final double MUTATION_RATE = 0.02;
     double absoluteBestScore = -Double.MAX_VALUE;
 
     private final RewardCalculator rewardCalc = new RewardCalculator();
@@ -95,15 +95,21 @@ public class EvolutionTrainer {
             }
 
             System.out.println("\nZwycięzca Generacji " + gen + " zdobył: " + bestScore + " pkt.");
-            if (bestScore > absoluteBestScore) {
-                System.out.println("MAMY NOWEGO MISTRZA WSZECHCZASÓW!");
-                absoluteBestScore = bestScore;
-                ModelSerializer.writeModel(bestChild, "absolute_master.zip", true);
-                saveBestScore(absoluteBestScore);
-                currentBestModel = bestChild;
+
+            if (bestChild == children.get(0)) {
+                System.out.println(">>> STARY MISTRZ OBRONIŁ TYTUŁ! (Nadal jest najlepszy)");
             } else {
-                System.out.println("Nikt nie pobił rekordu (" + absoluteBestScore + "). Wskrzeszam Mistrza Wszechczasów!");
-                currentBestModel = ModelSerializer.restoreMultiLayerNetwork("absolute_master.zip");
+                System.out.println(">>> MAMY NOWEGO MISTRZA! (Mutant pokonał rodzica)");
+            }
+
+
+            currentBestModel = bestChild;
+            ModelSerializer.writeModel(currentBestModel, "absolute_master.zip", true);
+
+
+            if (bestScore > absoluteBestScore) {
+                absoluteBestScore = bestScore;
+                saveBestScore(absoluteBestScore);
             }
 
             logEvolutionStats(gen, absoluteBestScore);
@@ -279,20 +285,19 @@ public class EvolutionTrainer {
                 double missionTime = ksp.getUT() - startTime;
 
                 System.out.printf(java.util.Locale.US,
-                        "   [T+%04.1fs] WYS: %5.0fm | SPD: %4.0fm/s | PITCH: %2.0f° | APO: %5.0fkm | GAZ: %3.0f%%%s%n",
+                        "\r   [T+%04.1fs] WYS: %5.0fm | SPD: %4.0fm/s | PITCH: %2.0f° | APO: %5.0fkm | GAZ: %3.0f%%%s          ",
                         missionTime,
                         altitude,
                         speed,
-                        targetPitch,           // to, co AI kazało ustawić
-                        apoapsis / 1000.0,     // zamieniamy na kilometry dla czytelności
-                        targetThrottle * 100,  // zamieniamy na procenty
-                        wantsToStage ? " [STAGE!]" : "" // informacja o odpaleniu stopnia
+                        targetPitch,
+                        apoapsis / 1000.0,
+                        targetThrottle * 100,
+                        wantsToStage ? " [STAGE!]" : ""
                 );
-
-                // Odczekanie 200ms (5 razy na sekundę), żeby odciążyć procesor
-                Thread.sleep(200);
+                Thread.sleep(50);
             }
 
+            System.out.println();
 
             autoPilot.disengage();
             vessel.getControl().setThrottle(0f);
