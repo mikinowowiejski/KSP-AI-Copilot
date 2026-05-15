@@ -4,10 +4,7 @@ public class RewardCalculator {
 
     public double calculateReward(double maxAlt, double apo, double peri, double finalFuel, boolean crashed)
     {
-        if(crashed)
-        {
-            return -10000.0;
-        }
+
 
         double reward = 0.0;
 
@@ -18,7 +15,7 @@ public class RewardCalculator {
             reward+= 1000.0;
         }
 
-        if(peri > -60000)
+        if(peri > -600000)
         {
             reward += ((peri + 600000) / 500.0);
         }
@@ -40,6 +37,10 @@ public class RewardCalculator {
             reward -= (difference * 0.01);
         }
 
+        if(crashed)
+        {
+            return -10000.0 + reward;
+        }
         return reward;
     }
 }

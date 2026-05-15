@@ -26,7 +26,9 @@ public class TelemetryTrainer {
     public void trainModel(String trainingDataPath, String savePath) throws IOException {
         System.out.println("ZACZYNAMY TRENING AI...");
 
-        List<String> lines = Files.readAllLines(Paths.get(trainingDataPath));
+        List<String> lines = Files.readAllLines(Paths.get(trainingDataPath)
+
+        );
 
         if (lines.get(0).contains("Czas_s")) {
             lines.remove(0);
@@ -35,6 +37,21 @@ public class TelemetryTrainer {
         int numRows = lines.size();
         INDArray input = Nd4j.create(numRows, 6);
         INDArray output = Nd4j.create(numRows, 3);
+
+
+        double[] smearedStaging = new double[numRows];
+        for (int i = 0; i < numRows; i++) {
+            String[] cols = lines.get(i).split(",");
+            double originalStaging = Double.parseDouble(cols[9]);
+            smearedStaging[i] = originalStaging;
+
+            for (int j = Math.max(0, i - 4); j <= Math.min(numRows - 1, i + 4); j++) {
+                String[] neighborCols = lines.get(j).split(",");
+                if (Double.parseDouble(neighborCols[9]) == 1.0) {
+                    smearedStaging[i] = 1.0;
+                }
+            }
+        }
 
         for (int i = 0; i < numRows; i++) {
             String[] cols = lines.get(i).split(",");
@@ -47,7 +64,7 @@ public class TelemetryTrainer {
 
             double pitch = Double.parseDouble(cols[7]);
             double throttle = Double.parseDouble(cols[8]);
-            double staging = Double.parseDouble(cols[9]);
+            double staging = smearedStaging[i];
 
             double nAlt = altitude / 70000.0;
             double nSpd = speed / 2500.0;

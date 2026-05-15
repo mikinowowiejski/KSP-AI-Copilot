@@ -8,9 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.util.Locale;
 
 public class CommandWriterAI {
 
@@ -36,8 +34,6 @@ public class CommandWriterAI {
             throw new IllegalStateException("Model AI nie został załadowany! Wywołaj loadAI() przed lotem.");
         }
 
-        double normalizedAltitude = altitude / 50000.0;
-
         INDArray input = Nd4j.create(new double[]{ nAlt, nSpd, nTwr, nQ, nApo, nEta }, new int[]{1, 6});
 
         INDArray output = aiModel.output(input);
@@ -51,33 +47,33 @@ public class CommandWriterAI {
         if (predictedThrottle > 1.0) predictedThrottle = 1.0;
 
         double rawStaging = output.getDouble(2);
-        int stagingFlag = (rawStaging > 0.8) ? 1 : 0;
-
+        int stagingFlag = (rawStaging > 0.4) ? 1 : 0;
 
         writeToCsvWithLock(predictedPitch, predictedThrottle, stagingFlag, outputPath);
-
     }
+
 
     private void writeToCsvWithLock(double pitch, double throttle, int staging, String outputPath) throws IOException
     {
-        //if (Math.abs(pitch - lastWrittenPitch) < 0.1) return;
+        Path dataPath = Path.of(outputPath);
 
-        Path finalPath = Path.of(outputPath);
-        Path tempPath = Path.of(outputPath + ".tmp");
+        Path flagPath = dataPath.getParent().resolve("ksp_ready.flag");
 
-        String command = String.format(java.util.Locale.US, "%.2f,%.2f,%d", pitch, throttle, staging);
+        if (Files.exists(flagPath)) {
 
-        try {
+            String command = String.format(java.util.Locale.US, "%.2f,%.2f,%d", pitch, throttle, staging);
 
-            Files.writeString(tempPath, command, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
-            Files.move(tempPath, finalPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            try {
+                Files.writeString(dataPath, command, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-            lastWrittenPitch = pitch;
-        } catch (java.io.IOException e) {
+                Files.deleteIfExists(flagPath);
 
+                lastWrittenPitch = pitch;
+            } catch (java.io.IOException e) {
+
+            }
         }
     }
-
 
     public void setAiModel(MultiLayerNetwork model) {
         this.aiModel = model;

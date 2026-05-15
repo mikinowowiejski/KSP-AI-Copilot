@@ -1,6 +1,7 @@
 package space.copilot.telemetry;
 
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 
@@ -16,6 +17,7 @@ public class EvolutionTrainer {
 
     private static final double NOISE_SCALE = 0.05;
     private static final double MUTATION_RATE = 0.3;
+    double absoluteBestScore = -Double.MAX_VALUE;
 
     private final String telemetryPath = "C:\\Program Files\\Epic Games\\KerbalSpaceProgram\\English\\Ships\\Script\\telemetria.csv";
     private final String commandPath = "C:\\Program Files\\Epic Games\\KerbalSpaceProgram\\English\\Ships\\Script\\sterowanie.csv";
@@ -102,10 +104,22 @@ public class EvolutionTrainer {
             }
 
             System.out.println("\nZwycięzca Generacji " + gen + " zdobył: " + bestScore + " pkt.");
-            currentBestModel = bestChild; // Prawo dżungli: Zwycięzca zostaje nowym rodzicem
-            saveModel(currentBestModel, "best_evolution_model.zip");
+            if (bestScore > absoluteBestScore) {
 
-            logEvolutionStats(gen, bestScore);
+                System.out.println("MAMY NOWEGO MISTRZA WSZECHCZASÓW!");
+                absoluteBestScore = bestScore;
+
+                ModelSerializer.writeModel(bestChild, "absolute_master.zip", true);
+
+                currentBestModel = bestChild;
+            } else {
+
+                System.out.println("Nikt nie pobił rekordu (" + absoluteBestScore + "). Wskrzeszam Mistrza Wszechczasów!");
+
+                currentBestModel = ModelSerializer.restoreMultiLayerNetwork("absolute_master.zip");
+            }
+
+            logEvolutionStats(gen, absoluteBestScore);
 
             System.gc();
         }
