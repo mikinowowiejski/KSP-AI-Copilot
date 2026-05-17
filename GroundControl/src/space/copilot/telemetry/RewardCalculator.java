@@ -8,20 +8,27 @@ public class RewardCalculator {
 
         // 1. NAGRODA ZA WYSOKOŚĆ (Rzeczywiście nieliniowa/pierwiastkowa)
 
-        reward += (Math.sqrt(maxAlt) * 10.0);
+        double effectiveAlt = Math.min(maxAlt, 80000.0);
+        reward += (effectiveAlt / 50.0);
 
         // 2. OSIĄGNIĘCIE PRZESTRZENI (Gradient zamiast ściany)
 
         if (apo > 0) {
             double cappedApo = Math.min(apo, 70000.0);
             reward += (cappedApo / 35.0);
+
+            if(apo > 85000)
+            {
+                double overshoot = apo - 85000;
+                reward-= (overshoot*0.05);
+            }
         }
 
         // 3. NAGRODA ZA ORBITĘ (Peryapsis gradient)
 
-        if (peri > -500000) {
+        if (peri > -620000) {
             double cappedPeri = Math.min(peri, 70000.0);
-            reward += ((cappedPeri + 500000) / 100.0);
+            reward += ((cappedPeri + 620000) / 100.0);
         }
 
         // 4. NAGRODA ZA STABILNĄ ORBITĘ (Pełny sukces)
@@ -32,9 +39,10 @@ public class RewardCalculator {
 
         // 5. KARA ZA NIESTABILNOŚĆ (Max AoA zamiast Average)
         if (maxAoA > 5.0) {
-
             double excessAoA = maxAoA - 5.0;
-            reward -= (Math.pow(excessAoA, 2) * 5.0);
+
+            double penalty = Math.min(Math.pow(excessAoA, 2) * 5.0, 2000.0);
+            reward -= penalty;
         }
 
         // 6. NAGRODA ZA KOŁOWOŚĆ ORBITY (Circularization)

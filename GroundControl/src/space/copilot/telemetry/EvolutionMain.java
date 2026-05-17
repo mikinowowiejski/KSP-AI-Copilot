@@ -7,7 +7,7 @@ public class EvolutionMain {
         EvolutionTrainer trainer = new EvolutionTrainer();
 
         String baseModel = "absolute_master.zip";
-        int generations = 100;
+        int generations = 600;
         int childrenPerGen = 25;
 
         try {

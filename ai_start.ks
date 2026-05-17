@@ -1,9 +1,0 @@
-WAIT UNTIL SHIP:UNPACKED.
-CORE:DOEVENT("Open Terminal").
-CLEARSCREEN.
-PRINT "=== SYSTEM AI: INICJALIZACJA ===".
-KUNIVERSE:QUICKSAVE().
-WAIT 1.
-
-PRINT "Ladowanie glownego rdzenia AI...".
-RUNPATH("0:/autopilot.ks").

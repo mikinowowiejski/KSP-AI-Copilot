@@ -6,6 +6,7 @@ import krpc.client.services.SpaceCenter.AutoPilot;
 import krpc.client.services.SpaceCenter.Flight;
 import krpc.client.services.SpaceCenter.Vessel;
 
+
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
@@ -69,7 +70,7 @@ public class EvolutionTrainer {
             this.absoluteBestScore = -Double.MAX_VALUE;
         }
 
-        for(int gen = 1; gen <= generations; gen++) {
+        for(int gen = 72; gen <= generations; gen++) {
             System.out.println("\n--- GENERACJA " + gen + "---");
             List<MultiLayerNetwork> children = createMutants(currentBestModel, childrenPerGen-1);
             children.add(0, currentBestModel.clone());
@@ -106,6 +107,8 @@ public class EvolutionTrainer {
             currentBestModel = bestChild;
             ModelSerializer.writeModel(currentBestModel, "absolute_master.zip", true);
 
+
+            absoluteBestScore = loadBestScore();
 
             if (bestScore > absoluteBestScore) {
                 absoluteBestScore = bestScore;
@@ -203,7 +206,7 @@ public class EvolutionTrainer {
                 }
 
                 if (maxThrust == 0 && periapsis < 70000) {
-                    emptyStageTimer += 0.2;
+                    emptyStageTimer += 0.05;
                     if (emptyStageTimer > 5.0) {
                         System.out.println("   [KATASTROFA] Martwy ciąg, AI unika stagingu!"); isCrashed = true;
                     }
@@ -260,23 +263,54 @@ public class EvolutionTrainer {
                 if (targetThrottle > 1f) targetThrottle = 1f;
 
                 boolean wantsToStage = output.getDouble(2) > 0.4;
-
                 /*
                 ===========================================================================
-                                WYKONANIE KOMEND W KSP (Wirtualny drążek)
+                                WYKONANIE KOMEND W KSP (SMART WARP 2.0)
                 ===========================================================================
-                 */
+               */
 
 
-                autoPilot.targetPitchAndHeading(targetPitch, 90f);
-                vessel.getControl().setThrottle(targetThrottle);
+                boolean engineFlamedOut = (vessel.getAvailableThrust() == 0f);
 
-                if (wantsToStage && ksp.getUT() > lastStageTime + 2.0) {
+                boolean willStageNow = engineFlamedOut && ksp.getUT() > lastStageTime + 2.0;
+
+                if (willStageNow) {
+
+                    if (ksp.getRailsWarpFactor() > 0) ksp.setRailsWarpFactor(0);
+                    if (ksp.getPhysicsWarpFactor() > 0) ksp.setPhysicsWarpFactor(0);
+                    Thread.sleep(100);
+
                     vessel.getControl().activateNextStage();
                     lastStageTime = ksp.getUT();
-                    System.out.println("   [AI] Wykonano staging!");
-                }
+                    System.out.println("\n   [KONTROLA LOTU] Automatyczny staging (Brak paliwa)!");
 
+                } else if (targetThrottle == 0f && altitude > 71000 && etaApo > 15.0) {
+
+
+                    if (ksp.getPhysicsWarpFactor() > 0) ksp.setPhysicsWarpFactor(0);
+
+
+                    int safeWarp = Math.min(ksp.getMaximumRailsWarpFactor(), 3);
+
+                    if (ksp.getRailsWarpFactor() != safeWarp) {
+                        ksp.setRailsWarpFactor(safeWarp);
+                    }
+
+                } else {
+
+
+                    if (ksp.getRailsWarpFactor() > 0) {
+                        ksp.setRailsWarpFactor(0);
+                        Thread.sleep(100);
+                    }
+
+                    if (ksp.getPhysicsWarpFactor() != 3) {
+                        ksp.setPhysicsWarpFactor(3);
+                    }
+
+                    autoPilot.targetPitchAndHeading(targetPitch, 90f);
+                    vessel.getControl().setThrottle(targetThrottle);
+                }
                 /*
                  ===========================================================================
                                      WYSWIETLENIE PARAMETROW NA KONSOLI
@@ -338,7 +372,7 @@ public class EvolutionTrainer {
             if (!Files.exists(statsPath)) {
                 Files.writeString(statsPath, "Generacja,Najlepszy_Wynik\n", StandardOpenOption.CREATE);
             }
-            String line = generation + "," + String.format(java.util.Locale.US, "%.2f", bestScore) + "\n";
+            String line = (generation) + "," + String.format(java.util.Locale.US, "%.2f", bestScore) + "\n";
             Files.writeString(statsPath, line, StandardOpenOption.APPEND);
         } catch (IOException e) {
             System.err.println("Błąd zapisu statystyk: " + e.getMessage());
