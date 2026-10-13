@@ -20,7 +20,15 @@ public class RewardCalculator {
             if(apo > 85000)
             {
                 double overshoot = apo - 85000;
-                reward-= (overshoot*0.05);
+                if(apo > 95000)
+                {
+                    reward-=(overshoot*0.2);
+                }
+                else
+                {
+                    reward-= (overshoot*0.05);
+                }
+
             }
         }
 

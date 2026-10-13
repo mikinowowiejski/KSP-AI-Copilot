@@ -199,7 +199,7 @@ public class EvolutionTrainer {
                     System.out.println("   [KATASTROFA] Rakieta spada!"); isCrashed = true;
                 } else if (altitude < 50000 && actualPitch < 0) {
                     System.out.println("   [KATASTROFA] Nos opadł w atmosferze!"); isCrashed = true;
-                } else if (apoapsis > 120000 && periapsis < 20000) {
+                } else if (altitude > 100000 && periapsis < 20000) {
                     System.out.println("   [KATASTROFA] Lot zbyt pionowy (Strzała)!"); isCrashed = true;
                 } else if (ksp.getUT() - startTime > 540 && periapsis < 70000) {
                     System.out.println("   [KATASTROFA] Limit czasu (9 minut)!"); isCrashed = true;
@@ -262,13 +262,12 @@ public class EvolutionTrainer {
                 if (targetThrottle < 0f) targetThrottle = 0f;
                 if (targetThrottle > 1f) targetThrottle = 1f;
 
-                boolean wantsToStage = output.getDouble(2) > 0.4;
+
                 /*
                 ===========================================================================
                                 WYKONANIE KOMEND W KSP (SMART WARP 2.0)
                 ===========================================================================
                */
-
 
                 boolean engineFlamedOut = (vessel.getAvailableThrust() == 0f);
 
@@ -326,7 +325,7 @@ public class EvolutionTrainer {
                         targetPitch,
                         apoapsis / 1000.0,
                         targetThrottle * 100,
-                        wantsToStage ? " [STAGE!]" : ""
+                        willStageNow ? " [STAGE!]" : ""
                 );
                 Thread.sleep(50);
             }
