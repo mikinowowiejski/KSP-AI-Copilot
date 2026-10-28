@@ -1,70 +1,60 @@
-# 🚀 KSP AI Copilot
+# 🚀 KSP AI Copilot: Direct kRPC & Neuroevolution
 
-> **Autopilot oparty na Sieciach Neuronowych dla Kerbal Space Program**
+> **W pełni autonomiczny, oparty na Sieciach Neuronowych system sterowania dla Kerbal Space Program.**
 
-Projekt inteligentnego systemu sterowania rakietą w grze *Kerbal Space Program (KSP)*. System wykorzystuje architekturę sieci neuronowych do optymalizacji manewru wznoszenia (Gravity Turn) i osiągania stabilnej orbity.
+Projekt inteligentnego systemu nawigacji (GNC) dla rakiet w grze *Kerbal Space Program (KSP)*. System wykorzystuje bezpośrednie połączenie z silnikiem gry (kRPC) oraz architekturę sieci neuronowych do optymalizacji manewru wznoszenia (Gravity Turn), zarządzania stagingiem i osiągania stabilnej orbity.
 
 ---
 
 ## 🛠️ Architektura Systemu
 
-Projekt składa się z dwóch ściśle współpracujących ze sobą modułów:
+W nowej wersji projektu zrezygnowano z powolnej komunikacji plikowej na rzecz architektury opartej o bezpośrednie API.
 
-* **Moduł Kontroli (KerboScript/kOS):** Skrypt działający wewnątrz gry, który odpowiada za egzekucję lotu, staging oraz wprowadzanie danych telemetrycznych.
-* **Mózg AI (Java/Deeplearning4j):** Zewnętrzna aplikacja, która analizuje dane w czasie rzeczywistym i podejmuje decyzje o optymalnym kącie nachylenia rakiety.
+* **Zewnętrzny Mózg AI (Java/Deeplearning4j):** Główna aplikacja zarządzająca całym lotem, analizująca dane w czasie rzeczywistym i podejmująca krytyczne decyzje nawigacyjne[cite: 4].
+* **Interfejs kRPC:** Zapewnia asynchroniczne, bezpośrednie połączenie między kodem w Javie a silnikiem KSP, co pozwala na natychmiastowe odczyty telemetrii i błyskawiczną egzekucję poleceń[cite: 5].
 
-### 🔄 Pętla Sterowania (Control Loop)
-1.  **Telemetria:** kOS zapisuje bieżące dane lotu (wysokość, prędkość) do pliku `telemetria.csv`.
-2.  **Analiza:** Moduł w Javie odczytuje ostatnią linię, normalizuje dane i przetwarza je przez sieć neuronową.
-3.  **Decyzja:** Model AI wylicza optymalny kąt (Pitch) i zapisuje go w pliku `sterowanie.csv`.
-4.  **Reakcja:** kOS odczytuje komendę i natychmiast koryguje kurs rakiety.
+### 🔄 Pętla Sterowania (Real-Time Control Loop)
+1.  **Telemetria (kRPC):** Java pobiera w czasie rzeczywistym krytyczne parametry lotu (wysokość, prędkość, przeciążenia G, ciśnienie dynamiczne Q, profil aerodynamiczny AoA)[cite: 4].
+2.  **Analiza (DL4J):** Znormalizowane dane trafiają prosto do modelu sieci neuronowej[cite: 4, 10].
+3.  **Decyzja:** Sieć na bieżąco wylicza optymalny kąt pochylenia (Pitch) oraz poziom przepustnicy (Throttle)[cite: 4].
+4.  **Egzekucja:** Komendy są wysyłane z powrotem do gry poprzez moduł `AutoPilot`, błyskawicznie korygując trajektorię[cite: 4].
 
 ---
 
 ## 🧠 Model AI i Logika Lotu
 
-W projekcie zaimplementowano dwa równoległe podejścia do sterowania:
+Projekt przeszedł droge od prostego uczenia nadzorowanego do zaawansowanych algorytmów genetycznych:
 
-* **Model Matematyczny (Baseline):** Wykorzystuje funkcję paraboliczną (`shapeFactor = 1.7`) do wyznaczania idealnego łuku lotu w celu zminimalizowania oporów atmosferycznych.
-* **Ewolucja Sieci Neuronowej (DL4J):**
-
-   - [1] **Etap 1: Behavioral Cloning (Uczenie Nadzorowane):** Pierwotna wersja systemu opierała się na naśladownictwie (Supervisor). Sieć uczyła się kopiować optymalne trajektorie z plików wzorcowych. Metoda ta zapewniała stabilność w znanych warunkach, ale brakowało jej elastyczności przy nieprzewidzianych anomaliach.
-
-   - [2] **Etap 2: Hybrydowa Neuroewolucja (Supervised Learning + Genetic Algorithm)** : Obecna wersja wykorzystuje podejście hybrydowe. Model łączy początkową bazę wiedzy z algorytmami ewolucyjnymi. Dzięki temu AI nie tylko „kopiuje” ruchy pilota, ale aktywnie optymalizuje kąt nachylenia (Pitch) poprzez mechanizm selekcji i mutacji, dążąc do wyewoluowania trajektorii maksymalizującej końcową nagrodę (idealna stabilność orbity i ekstremalna oszczędność paliwa).
+- [1] **Etap 1: Behavioral Cloning (Uczenie Nadzorowane):** Pierwotna wersja (moduł `TelemetryTrainer`) opierała się na treningu z wykorzystaniem historycznych danych telemetrycznych[cite: 10]. Sieć uczyła się kopiować bazowe trajektorie z plików CSV, optymalizując wagi algorytmem Adam[cite: 10].
+- [2] **Etap 2: Hybrydowa Neuroewolucja:** Obecny system (`EvolutionTrainer`) wykorzystuje model hybrydowy[cite: 3, 4]. Sieć ewoluuje w symulacji poprzez tworzenie generacji "mutantów" (wprowadzanie szumu do wag modelu)[cite: 4]. Klasa `RewardCalculator` rygorystycznie ocenia każdy lot, przyznając punkty m.in. za osiągniętą wysokość, kołowość orbity i oszczędność paliwa, jednocześnie karząc za katastrofy czy zbyt wysoki kąt natarcia (AoA)[cite: 9]. Najlepszy model z generacji staje się bazą dla kolejnej ("absolute_master.zip")[cite: 4].
 
 * **Specyfikacja Techniczna Modelu:**
-
-- [ ] **Architektura:** Wielowarstwowy Perceptron (MLP - Dense Layers).
-
-- [ ] **Funkcja Aktywacji:** TANH (Tangens hiperboliczny) – wybrana ze względu na zapewnienie płynności zmian kątowych, co jest kluczowe dla stabilności aerodynamicznej rakiety.
-
-- [ ] **Optymalizator: Adam** (learning rate: 0.001) – zapewniający szybką zbieżność modelu podczas sesji treningowych.
+  * **Architektura:** Wielowarstwowy Perceptron (MLP) o strukturze warstw: Wejście(10) -> Dense(64) -> Dense(32) -> Wyjście(3)[cite: 4, 10].
+  * **Funkcje Aktywacji:** TANH dla warstw ukrytych (zapewniająca płynność zmian wektorowych) oraz SIGMOID dla warstwy wyjściowej[cite: 4, 10].
+  * **Optymalizator:** Adam (learning rate: 0.001) gwarantujący szybką zbieżność[cite: 4, 10].
 
 ---
 
 ## 🚀 Osiągnięcia (Progress Log)
 
-- [x] **Integracja kOS <-> Java:** Stabilna komunikacja plikowa z zabezpieczeniem przed konfliktami dostępu (Atomic Move).
-- [x] **Automatyczny Staging:** System wykrywa brak ciągu i automatycznie odrzuca puste człony rakiety.
-- [x] **Gravity Turn:** Implementacja zoptymalizowanego łuku lotu (parabola).
-- [x] **Stabilna Orbita:** Skrypt automatycznie wykonuje manewr cyrkularyzacji w Apoapsis, stabilizując orbitę powyżej 70 km.
-- [x] **Neuroewolucja** Przejście z prostego modelu Supervised Learning na zaawansowany **Hybryd Neuroevolution**.
+- [x] **Przejście na kRPC:** Eliminacja opóźnień I/O dzięki integracji z serwerem kRPC[cite: 5].
+- [x] **Autonomia w Javie (Auto-Staging):** System AI samodzielnie wykrywa spadek ciągu do zera i aktywuje procedurę odrzucenia pustych członów rakiety[cite: 4].
+- [x] **Smart Warp 2.0:** Zaimplementowano dynamiczne sterowanie przyspieszeniem czasu (Physics Warp) bezpośrednio z kodu Javy, co drastycznie skraca czas potrzebny na ewolucyjny trening AI[cite: 4].
+- [x] **Złożona Funkcja Nagrody:** Stworzenie precyzyjnego systemu scoringowego (m.in. gradient nagród za perycentrum), który skutecznie promuje stabilizację orbity kosmicznej (powyżej 70 km)[cite: 4, 9].
 
 ---
 
 ## 📋 Wymagania
 
-* Gra **Kerbal Space Program** z zainstalowanym modem **kOS**.
+* Gra **Kerbal Space Program** z uruchomionym modyfikacją **kRPC**.
 * **Java 17** (lub nowsza).
-* Biblioteki AI: **Deeplearning4j (DL4J)** oraz **ND4J**.
+* Biblioteki: **Deeplearning4j (DL4J)**, **ND4J**, **krpc-java**.
 
 ---
 
 ## ⚙️ Jak uruchomić?
 
-1. Uruchom grę KSP i umieść przygotowaną rakietę na platformie startowej.
-2. Uruchom główną klasę `MainAI` w swoim środowisku programistycznym (Java).
-3. Otwórz terminal kOS wewnątrz gry i wpisz poniższe komendy:
-   ```kerboscript
-   SWITCH TO 0.
-   run autopilot.
+1. Uruchom grę KSP, umieść testową rakietę na platformie startowej i upewnij się, że serwer kRPC jest włączony[cite: 5].
+2. Otwórz projekt w środowisku programistycznym wspierającym Javę.
+3. Aby rozpocząć trening ewolucyjny, skompiluj i uruchom klasę `EvolutionMain.java`[cite: 3].
+4. System zautomatyzuje cały proces: przejmie stery, wykona lot w przyspieszeniu (Warp), wyliczy nagrodę, załaduje quicksave (ksp.quickload) i przystąpi do testowania kolejnego modelu[cite: 4].
